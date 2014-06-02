@@ -1,0 +1,19 @@
+{
+    "name": "node-web-test",
+    "description": "A module for automating web testing",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+      "jquery": "2.x",
+      "jsdom": "*",
+      "underscore": "*",
+      "backbone": "*",
+      "querystring": "*",
+      "parseUri": "*",
+      "promise": "*",
+      "nodeunit": "*",
+      "sequelize": "*",
+      "sqlite3": "*",
+      "lodash": "*"
+    }
+}

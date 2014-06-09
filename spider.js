@@ -28,7 +28,7 @@ var Spider = function(options){
     t.options = _.extend(t.options, options);
 
     t._pagesSpidered = 0;
-    t._crawler = new Crawler();
+    t._crawler = new Crawler({log: console.log});
     _.bindAll(t,
         'addUrl',
         '_getUrlToServer',
@@ -101,7 +101,6 @@ _.extend(Spider.prototype, {
                    chainer.add(db.Resource.find({where: { url: url } })); 
                 });
                 chainer.run().success(function(results){
-                    t._ensureProcessing();
                     resolve(results);
                 });
             });
@@ -199,8 +198,11 @@ _.extend(Spider.prototype, {
             val.updateAttributes({
                 crawlStatus: 2,
                 statusCode: response.statusCode,
-                dataSize: response.body.length
+                dataSize: response.body.length,
+                contentType: response.headers['content-type']
             });
+            
+            t._ensureProcessing();
             
             if(response.refs.length > 0){
                 var refs = _.map(response.refs, function(r){
@@ -214,6 +216,7 @@ _.extend(Spider.prototype, {
                 });
 
                 t.addUrls(refs).then(function(refObjs){
+                    t._ensureProcessing();
                     val.setReferences(refObjs).error(function(err){
                         
                     });

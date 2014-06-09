@@ -1,5 +1,6 @@
 var http = require('http'),
-        jsdom = require('jsdom'),
+        cheerio = require('cheerio'),
+        //jsdom = require('jsdom'),
 	q = require('querystring'),
         urlUtils = require('url'),
         fs = require('fs'),
@@ -45,7 +46,8 @@ _.extend(Crawler.prototype, {
         crawlCss: true,
         crawlScripts: true,
         fetchTimeout: null,
-        maxConnections: 50
+        maxConnections: 50,
+        log: function(){}
     },
     
     complete: function(callback){
@@ -101,7 +103,8 @@ _.extend(Crawler.prototype, {
         var t = this;
         var url = item.url;
         var url_parts = urlUtils.parse(url);
-
+        
+        t.options.log("Crawling Url: " + url);
         var options = {  
            host: url_parts.host,   
            port: ('port' in url_parts && url_parts.port !== null) ? url_parts.port : 80,   
@@ -118,10 +121,7 @@ _.extend(Crawler.prototype, {
                     refs: []
                 };
 
-                res.on('data', function(chunk) {
-                    response.body = response.body + chunk.toString();
-                });
-                res.on('end', function() {
+                var done = function() {
                     t._closeConnection();
                     
                     response.statusCode = res.statusCode;
@@ -150,12 +150,13 @@ _.extend(Crawler.prototype, {
                     result.then(function(resp){
                         item.resolve(resp);
                     });
+                };
+                
+                res.on('data', function(chunk) {
+                    response.body = response.body + chunk.toString();
                 });
-                res.on('close', function(err){
-                    //Not sure if this overlaps with "error"
-                    //t._openRequests--;
-                    console.log('Connection to ' + req_url + ' closed due to error: ' + err + "\n");
-                });
+                res.on('end', done);
+                res.on('close', done);
             };
         }(url)).on('error', function(req_url){
             return function(e) {
@@ -163,11 +164,11 @@ _.extend(Crawler.prototype, {
                     url: req_url,
                     body: '',
                     refs: [],
-                    statusCode: e.statusCode,
-                    headers: e.headers
+                    statusCode: e.statusCode || 0,
+                    headers: e.headers || {}
                 };
 
-//                item.resolve(response);
+                item.resolve(response);
             };
         }(url)); 
     },
@@ -179,16 +180,19 @@ _.extend(Crawler.prototype, {
     _processHtmlResponse: function(response){
         var t = this;
         var result = new Promise(function(resolve, reject){
-            jsdom.env({
-              html: response.body,
-              //scripts: ['http://code.jquery.com/jquery-1.7.2.min.js'],
-              src: [jQScriptSrc],
-              done: function (err, window) {
-                response.jQuery = window.jQuery;
-                response.refs = t._scrapeUrls(response.url, response.jQuery);
-                resolve(response);
-              }
-            });
+            response.jQuery = cheerio.load(response.body);
+            respnose.refs = t._scrapeUrls(response.url, response.jQuery);
+            resolve(response);
+//            jsdom.env({
+//              html: response.body,
+//              //scripts: ['http://code.jquery.com/jquery-1.7.2.min.js'],
+//              src: [jQScriptSrc],
+//              done: function (err, window) {
+//                response.jQuery = window.jQuery;
+//                response.refs = t._scrapeUrls(response.url, response.jQuery);
+//                resolve(response);
+//              }
+//            });
         });
         
         return result;
@@ -197,7 +201,13 @@ _.extend(Crawler.prototype, {
     _processCssResponse: function(response){
         var t = this;
         var result = new Promise(function(resolve, reject){
-            resolve();
+            var urlMatch = /[:\s]+url\(['"]?([^\(]+)['"]?\)/g;
+            var match;
+            while ((match = urlMatch.exec(str)) !== null)
+            {
+                response.refs.push(match[1]);
+            }
+            resolve(response);
         });
         
         return result;

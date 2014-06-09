@@ -9,7 +9,7 @@ var c = new Spider({
     includeDomains: [
      "www.campbellskitchen.com"   
     ],
-    maxPages: 500
+    maxPages: 5000
 });
 var result = c.addUrl('http://www.campbellskitchen.com/');
 c.on('crawl', function(response){

@@ -6,7 +6,7 @@ module.exports = {
         "settings": {
             "dialect": "sqlite",
             "storage": "db.sqlite3",
-            "logging": console.log //function(){}
+            "logging": function(){}
         }
     }
 };

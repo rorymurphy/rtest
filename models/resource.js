@@ -6,7 +6,8 @@ var Resource = sequelize.define('Resource', {
     url: { type: DataTypes.STRING, allowNull: false, unique: true },
     crawlStatus: DataTypes.INTEGER,
     statusCode: DataTypes.INTEGER,
-    dataSize: DataTypes.INTEGER
+    dataSize: DataTypes.INTEGER,
+    contentType: DataTypes.STRING
   },
   {
     classMethods : {

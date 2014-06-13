@@ -43,6 +43,8 @@ _.extend(Spider.prototype, {
     options: {
         includeDomains: null,
         excludeDomains: null,
+        urlFilter: null,
+        
         depth: 3,
         maxPages: null,
         
@@ -55,14 +57,17 @@ _.extend(Spider.prototype, {
     
     
     addUrl: function(url){
-        var res = db.Resource.findOrCreate({ url: url }, {
-            crawlStatus: 0,
-            statusCode: null,
-            dataSize: null         
+        var t = this;
+        return new Promise(function(resolve, reject){
+            var res = db.Resource.findOrCreate({ url: url }, {
+                crawlStatus: 0,
+                statusCode: null,
+                dataSize: null         
+            }).success(function(result){
+                t._ensureProcessing();
+                resolve(result);
+            });
         });
-        
-        this._ensureProcessing();
-        return res;
     },
     
     addUrls: function(urls){
@@ -71,20 +76,39 @@ _.extend(Spider.prototype, {
             var chainer = new Sequelize.Utils.QueryChainer();
             _.each(urls, function(url){
                 var date = new Date();
+                
+               var isIncluded = (
+                    t._isDomainIncluded(url)
+                    && !(t.options.urlFilter && !t.options.urlFilter(url))
+               );
+               
+               var insertVals = null;
+               if(isIncluded){
+                   insertVals = {
+                        url: url,
+                        crawlStatus: 0,
+                        statusCode: null,
+                        dataSize: null,
+                        createdAt: date,
+                        updatedAt: date
+                    };
+               }else{
+                   insertVals = {
+                        url: url,
+                        crawlStatus: 3,
+                        statusCode: null,
+                        dataSize: null,
+                        createdAt: date,
+                        updatedAt: date
+                    };                   
+               }
                chainer.add(
 
                     db.sequelize.query(
                         "INSERT OR IGNORE INTO Resources (url, crawlStatus, statusCode, dataSize, createdAt, updatedAt) VALUES(:url, :crawlStatus, :statusCode, :dataSize, :createdAt, :updatedAt)",
                         null,
                         {raw: true},
-                        {
-                            url: url,
-                            crawlStatus: 0,
-                            statusCode: null,
-                            dataSize: null,
-                            createdAt: date,
-                            updatedAt: date
-                        }
+                        insertVals
                     )
     //                db.Resource.findOrCreate({ url: url }, {
     //                    crawlStatus: 0,
@@ -129,7 +153,7 @@ _.extend(Spider.prototype, {
     _ensureProcessing: function(){
         var t = this;
         if(!t._processTimeout){
-            t._processTimeout = setTimeout(t._processQueue, 1000);
+            t._processTimeout = setTimeout(t._processQueue, 250);
         }
     },
     
@@ -211,8 +235,7 @@ _.extend(Spider.prototype, {
 
                 var respSvrUrl = t._getUrlToServer(response.url);
                 refs = _.reject(refs, function(u){
-                    return u === respSvrUrl
-                        || !t._isDomainIncluded(u);
+                    return u === respSvrUrl;
                 });
 
                 t.addUrls(refs).then(function(refObjs){

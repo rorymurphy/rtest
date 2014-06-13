@@ -104,7 +104,7 @@ _.extend(Crawler.prototype, {
         var url = item.url;
         var url_parts = urlUtils.parse(url);
         
-        t.options.log("Crawling Url: " + url);
+        //t.options.log("Crawling Url: " + url);
         var options = {  
            host: url_parts.host,   
            port: ('port' in url_parts && url_parts.port !== null) ? url_parts.port : 80,   
@@ -141,7 +141,13 @@ _.extend(Crawler.prototype, {
                         result = t._processCssResponse(response);
                     }else{
                         if(res.statusCode==301 || res.statusCode==302){
-                            response.refs.push( res.headers['location'] );
+                            var location = res.headers['location'];
+                            if(!location || ! response.url){
+                                t.options.log("Bad redirect from " + response.url);
+                                t.options.log(JSON.stringify(res.headers));
+                            }else{
+                                response.refs.push(urlUtils.resolve(response.url, location ) );
+                            }
                         }
                         
                         result = new Promise(function(resolve, reject){ resolve(response); });
@@ -149,6 +155,10 @@ _.extend(Crawler.prototype, {
                     
                     result.then(function(resp){
                         item.resolve(resp);
+                    },
+                    function(err){
+                        t.options.log(err);
+                        throw err;
                     });
                 };
                 
@@ -181,7 +191,7 @@ _.extend(Crawler.prototype, {
         var t = this;
         var result = new Promise(function(resolve, reject){
             response.jQuery = cheerio.load(response.body);
-            respnose.refs = t._scrapeUrls(response.url, response.jQuery);
+            response.refs = t._scrapeUrls(response.url, response.jQuery);
             resolve(response);
 //            jsdom.env({
 //              html: response.body,
@@ -203,10 +213,16 @@ _.extend(Crawler.prototype, {
         var result = new Promise(function(resolve, reject){
             var urlMatch = /[:\s]+url\(['"]?([^\(]+)['"]?\)/g;
             var match;
-            while ((match = urlMatch.exec(str)) !== null)
+            var refs = [];
+            while ((match = urlMatch.exec(response.body)) !== null)
             {
-                response.refs.push(match[1]);
+                refs.push(match[1]);
             }
+            
+            refs = _.map(refs, function(item){
+                return urlUtils.resolve(response.url, item);
+            });
+            response.refs = response.refs.concat(refs);
             resolve(response);
         });
         
@@ -214,6 +230,7 @@ _.extend(Crawler.prototype, {
     },
     
     _scrapeUrls: function(docURL, $){
+        var protoCheck = /^https?\:\/\//;
         var t=this;
         var results = [];
         

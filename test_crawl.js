@@ -9,7 +9,13 @@ var c = new Spider({
     includeDomains: [
      "www.campbellskitchen.com"   
     ],
-    maxPages: 5000
+    urlFilter: function(url){
+        var searchUrl = 'http://www.campbellskitchen.com/SearchResults'.toUpperCase();
+        return !(url.length >= searchUrl.length
+            && url.substr(0, searchUrl.length).toUpperCase() == searchUrl)
+    },
+    maxPages: 25000,
+    maxConnections: 50
 });
 var result = c.addUrl('http://www.campbellskitchen.com/');
 c.on('crawl', function(response){

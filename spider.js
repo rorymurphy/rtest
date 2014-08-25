@@ -2,7 +2,6 @@ GLOBAL.appConfig = require('./conf/config');
 
 var q = require('querystring'),
         urlUtils = require('url'),
-        fs = require('fs'),
         _ = require('underscore'),
         Backbone = require('backbone'),
         Promise = require('promise'),
@@ -58,16 +57,7 @@ _.extend(Spider.prototype, {
     
     addUrl: function(url){
         var t = this;
-        return new Promise(function(resolve, reject){
-            var res = db.Resource.findOrCreate({ url: url }, {
-                crawlStatus: 0,
-                statusCode: null,
-                dataSize: null         
-            }).success(function(result){
-                t._ensureProcessing();
-                resolve(result);
-            });
-        });
+        return t.addUrls([url]);
     },
     
     addUrls: function(urls){
@@ -131,6 +121,44 @@ _.extend(Spider.prototype, {
         });
     },
     
+    _getRecordsByStatus : function(status, limit){
+        var q = {
+            where: {
+                crawlStatus: status
+            }
+        };
+        if(limit){
+            q['limit'] = limit;
+        }
+        
+        return db.Resource.findAll(q);
+    },
+    
+    _getRecordByUrl: function(url){
+        var q = {
+            where : {
+                url: url
+            }
+        };
+        return db.Resource.find(q)        
+    },
+    
+    _updateRecords: function(rec){
+        if(rec instanceof Array){
+            var chainer = new Sequelize.Utils.QueryChainer();
+            _.each(rec, function(v){
+               chainer.add(v.save()); 
+            });
+            return chainer.run();
+        }else{
+            return rec.save();
+        }
+    },
+    
+    _setReferences: function(val, refs){
+        return val.setReferences(refs);
+    },
+    
     //Strips off the # portion of the URL
     _getUrlToServer: function(url){
         var parts = urlUtils.parse(url);
@@ -164,19 +192,12 @@ _.extend(Spider.prototype, {
         t._isProcessing = true;
 
         var num = t.options.maxConnections -  t._crawler.getQueueDepth();
-        db.Resource.findAll({
-            where: {
-                crawlStatus: 0
-            },
-            //Grabbing one more record than we want so we don't have to do a second query
-            //to check if we need to do another process pass.
-            limit: num + 1
-        }).success(function(res){
+        this._getRecordsByStatus(0, num + 1).success(function(res){
 
             if(res.length === 0){
                 t._isProcessing = false;
             }else{
-                var chainer = new Sequelize.Utils.QueryChainer();
+                var updates = [];
                 res = _.filter(res, function(val){
                     //Grabbing one more record than we want so we don't have to do a second query
                     //to check if we need to do another process pass.
@@ -184,18 +205,15 @@ _.extend(Spider.prototype, {
 
                     //Make sure we respect the maxPages
                     if(t.options.maxPages !== null && t.options.maxPages <= t._pagesSpidered){ return false; }
-                    t._pagesSpidered++
+                    t._pagesSpidered++;
 
-                    chainer.add(
-                        val.updateAttributes({
-                            crawlStatus: 1
-                        })
-                    );
+                    val.crawlStatus = 1;
+                    updates[] = val;
 
                     return true;
                 });
 
-                chainer.run().success(function(){
+                t._updateRecords(updates).success(function(){
                     _.each(res, function(val){
                         t._crawler.addUrl(val.url).then(t._crawlSuccess);
                     });
@@ -213,19 +231,14 @@ _.extend(Spider.prototype, {
     
     _crawlSuccess: function(response){
         var t = this;
-        db.Resource.find({
-            where: {
-                url: response.url
-            }
-        }).success(function(val){
+        t._getRecordByUrl(response.url).success(function(val){
             
-            val.updateAttributes({
-                crawlStatus: 2,
-                statusCode: response.statusCode,
-                dataSize: response.body.length,
-                contentType: response.headers['content-type']
-            });
+            val.crawlStatus = 2;
+            val.statusCode = response.statusCode;
+            val.dataSize = response.body.length;
+            val.contentType = response.headers['content-type'];
             
+            t._updateRecords(val);            
             t._ensureProcessing();
             
             if(response.refs.length > 0){
@@ -240,7 +253,7 @@ _.extend(Spider.prototype, {
 
                 t.addUrls(refs).then(function(refObjs){
                     t._ensureProcessing();
-                    val.setReferences(refObjs).error(function(err){
+                    t._setReferences(val, refObjs).error(function(err){
                         
                     });
                 });

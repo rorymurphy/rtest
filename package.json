@@ -1,7 +1,9 @@
 {
-    "name": "node-web-test",
+    "name": "rtest",
     "description": "A module for automating web testing",
     "version": "0.0.1",
+    "main": "rtest.js",
+    "bin": "rtest-bin.js",
     "private": true,
     "dependencies": {
       "cheerio": "*",

@@ -17,6 +17,5 @@ var Resource = sequelize.define('Resource', {
     }
   });
 
-  Resource.sync();
   return Resource;
 };

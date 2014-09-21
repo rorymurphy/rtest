@@ -1,10 +1,13 @@
 {
     "name": "rtest",
     "description": "A module for automating web testing",
-    "version": "0.0.1",
+    "version": "0.0.2",
+    "author":{
+      "name": "Rory Murphy",
+      "email": "ndmurph04@gmail.com"
+    },
     "main": "rtest.js",
     "bin": "rtest-bin.js",
-    "private": true,
     "dependencies": {
       "cheerio": "*",
       "underscore": "*",

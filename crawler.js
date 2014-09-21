@@ -8,7 +8,6 @@ var http = require('http'),
         Backbone = require('backbone'),
         Promise = require('promise');
 
-var jQScriptSrc=fs.readFileSync('./node_modules/jquery/dist/jquery.min.js').toString();
 
 _.mixin({
     beginsWith: function(haystack, needle){
@@ -190,19 +189,9 @@ _.extend(Crawler.prototype, {
     _processHtmlResponse: function(response){
         var t = this;
         var result = new Promise(function(resolve, reject){
-            response.jQuery = cheerio.load(response.body);
-            response.refs = t._scrapeUrls(response.url, response.jQuery);
+            response.$ = cheerio.load(response.body);
+            response.refs = t._scrapeUrls(response.url, response.$);
             resolve(response);
-//            jsdom.env({
-//              html: response.body,
-//              //scripts: ['http://code.jquery.com/jquery-1.7.2.min.js'],
-//              src: [jQScriptSrc],
-//              done: function (err, window) {
-//                response.jQuery = window.jQuery;
-//                response.refs = t._scrapeUrls(response.url, response.jQuery);
-//                resolve(response);
-//              }
-//            });
         });
         
         return result;

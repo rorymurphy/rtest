@@ -1,5 +1,3 @@
-GLOBAL.appConfig = require('./conf/config');
-
 var q = require('querystring'),
         urlUtils = require('url'),
         _ = require('underscore'),
@@ -115,6 +113,7 @@ _.extend(Spider.prototype, {
                    chainer.add(db.Resource.find({where: { url: url } })); 
                 });
                 chainer.run().success(function(results){
+                    t._ensureProcessing();
                     resolve(results);
                 });
             });
@@ -208,7 +207,7 @@ _.extend(Spider.prototype, {
                     t._pagesSpidered++;
 
                     val.crawlStatus = 1;
-                    updates[] = val;
+                    updates.push( val );
 
                     return true;
                 });

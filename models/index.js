@@ -25,6 +25,7 @@ Object.keys(db).forEach(function(modelName) {
   }
 });
  
+ sequelize.sync().then(function(){}, console.log);
 module.exports = lodash.extend({
   sequelize: sequelize,
   Sequelize: Sequelize

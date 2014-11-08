@@ -1,10 +1,12 @@
 # RTest
 ## Web site scanning and testing made easy
 
+### Project Page: https://github.com/rorymurphy/rtest
+
 RTest makes ensuring consistency across every page on all your web sites a snap. After defining a set of test, all you have to specify is any entrypoint URL and a few options, and RTest will do the rest. It will crawl your web site, executing your tests against each response. Your tests can access all the standard attributes of the response - url, headers, body, as well as a jQuery-like (cheerio) object for the response body that can be used to test the structure of the document.
 
 ## Syntax
-rtest <options> <test file 1> ... <test file n>
+rtest &lt;options&gt; &lt;test file 1>&gt; ... &lt;test file n&gt;
 
 ### Options
 | Flag | Description |

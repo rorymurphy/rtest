@@ -43,11 +43,11 @@ The assert option provides methods for testing various conditions and outputting
 
 | Signature | Description |
 | ------ | ----------- |
-| isTrue: function(truthTest, msg, errorLvl) | accepts a single value and evaluates it as truthy or not (using ==), logs the specified msg if it is not |
-| areEqual: function(expected, actual, msg, errorLvl) | accepts two values and tests their equality using === checking, logs the specified msg if not |
-| areNotEqual: function(notExpected, actual, msg, errorLvl) | reverse of areEqual |
-| success: function(msg) | logs a success message |
-| failure: function(msg, errorLvl) | unconditionally logs an error message with the specified errorLvl |
+| isTrue(truthTest, msg, errorLvl) | accepts a single value and evaluates it as truthy or not (using ==), logs the specified msg if it is not |
+| areEqual(expected, actual, msg, errorLvl) | accepts two values and tests their equality using === checking, logs the specified msg if not |
+| areNotEqual(notExpected, actual, msg, errorLvl) | reverse of areEqual |
+| success(msg) | logs a success message |
+| failure(msg, errorLvl) | unconditionally logs an error message with the specified errorLvl |
 
 ## The _response_ object
 

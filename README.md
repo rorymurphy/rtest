@@ -27,13 +27,35 @@ rtest &lt;options&gt; &lt;test file 1&gt; ... &lt;test file n&gt;
 
     //The module exports must be an array of tests
     module.exports = [
-        rtest.test("Not an error code", function(assert, resp){
+        rtest.test("Not an error code", function(assert, response){
             //Assert that the response code is not an error code (a 4XX or 5XX) status
-            assert.isTrue(resp.statusCode < 400, 'URL returned a status code ' + resp.statusCode);
+            assert.isTrue(response.statusCode < 400, 'URL returned a status code ' + response.statusCode);
         }),
 
-        rtest.test("Optimize with 1 CSS file", function(assert, r){
+        rtest.test("Optimize with 1 CSS file", function(assert, response){
             //Assert that there is only one link element of type text/css
-            assert.areEqual(1, resp.$('link[type="text/css"]').length, "More than one stylesheet found", "WARN"); 
+            assert.areEqual(1, response.$('link[type="text/css"]').length, "More than one stylesheet found", "WARN"); 
         })
     ];
+
+## The _assert_ object
+The assert option provides methods for testing various conditions and outputting the result to the console, along with some basic information about the request being tested. The errorLvl argument should be one of "FATAL", "ERROR", "WARN", "INFO" or "DEBUG". The assert object has the following methods:
+
+| Signature | Description |
+| ------ | ----------- |
+| isTrue: function(truthTest, msg, errorLvl) | accepts a single value and evaluates it as truthy or not (using ==), logs the specified msg if it is not |
+| areEqual: function(expected, actual, msg, errorLvl) | accepts two values and tests their equality using === checking, logs the specified msg if not |
+| areNotEqual: function(notExpected, actual, msg, errorLvl) | reverse of areEqual |
+| success: function(msg) | logs a success message |
+| failure: function(msg, errorLvl) | unconditionally logs an error message with the specified errorLvl |
+
+## The _response_ object
+
+| Property | Description |
+| -------- | ----------- |
+| url | the requested url |
+| body | the body of the HTTP request in string form - may be HTML or binary |
+| refs | other URLs that are referenced by this document - only parsed for HTML or CSS documents |
+| statusCode | the HTTP status code returned by the server |
+| headers | a javascript object with the header names as keys and values. The content-type is often a header of particular interest in order to write tests that only pertain to a particular resource class |
+| $ | the jQuery-like cheerio object for the document root that can be used to run queries against the page structure - only populated for HTML responses |

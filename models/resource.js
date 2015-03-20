@@ -1,6 +1,6 @@
 module.exports = function(sequelize, DataTypes) {
 
- 
+
 var Resource = sequelize.define('Resource', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true},
     url: { type: DataTypes.STRING, allowNull: false, unique: true },
@@ -12,7 +12,7 @@ var Resource = sequelize.define('Resource', {
   {
     classMethods : {
         associate: function(models){
-            Resource.hasMany(Resource, { as: 'References', foreignKey: 'resourceId', through: "ResourceReference" });
+            Resource.belongsToMany(Resource, { as: 'References', foreignKey: 'ParentResourceId', otherKey: 'ResourceId', through: "ResourceReference" });
         }
     }
   });

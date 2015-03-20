@@ -1,23 +1,31 @@
 {
-    "name": "rtest",
-    "description": "A module for automating web testing",
-    "version": "0.0.5",
-    "author":{
-      "name": "Rory Murphy",
-      "email": "ndmurph04@gmail.com"
-    },
-    "main": "rtest.js",
-    "bin": "rtest-bin",
-    "dependencies": {
-      "cheerio": "*",
-      "underscore": "*",
-      "backbone": "*",
-      "querystring": "*",
-      "parseUri": "*",
-      "promise": "*",
-      "nodeunit": "*",
-      "sequelize": "*",
-      "sqlite3": "*",
-      "lodash": "*"
-    }
+  "name": "rtest",
+  "description": "A module for automating web testing",
+  "version": "0.0.13",
+  "author": {
+    "name": "Rory Murphy",
+    "email": "ndmurph04@gmail.com"
+  },
+  "main": "rtest.js",
+  "bin": "rtest-bin",
+  "dependencies": {
+    "backbone": "^1.1.2",
+    "cheerio": "^0.16.0",
+    "lodash": "^2.4.1",
+    "nodeunit": "^0.9.0",
+    "parseUri": "^1.2.3-2",
+    "promise": "^5.0.0",
+    "querystring": "^0.2.0",
+    "sequelize": "^2.0.4",
+    "sqlite3": "^3.0.5",
+    "underscore": "^1.8.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rorymurphy/rtest.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rorymurphy/rtest/issues"
+  },
+  "homepage": "https://github.com/rorymurphy/rtest"
 }

@@ -41,35 +41,36 @@ _.extend(Spider.prototype, {
         includeDomains: null,
         excludeDomains: null,
         urlFilter: null,
-        
+
         depth: 3,
         maxPages: null,
-        
+
         crawlImages: true,
         crawlCss: true,
         crawlScripts: true,
         fetchTimeout: null,
         maxConnections: 50
     },
-    
-    
+
+
     addUrl: function(url){
         var t = this;
         return t.addUrls([url]);
     },
-    
+
     addUrls: function(urls){
         var t = this;
+        urls = _.unique(urls);
         return new Promise(function(resolve, reject){
             var chainer = new Sequelize.Utils.QueryChainer();
             _.each(urls, function(url){
                 var date = new Date();
-                
+
                var isIncluded = (
                     t._isDomainIncluded(url)
                     && !(t.options.urlFilter && !t.options.urlFilter(url))
                );
-               
+
                var insertVals = null;
                if(isIncluded){
                    insertVals = {
@@ -88,38 +89,36 @@ _.extend(Spider.prototype, {
                         dataSize: null,
                         createdAt: date,
                         updatedAt: date
-                    };                   
+                    };
                }
                chainer.add(
 
                     db.sequelize.query(
                         "INSERT OR IGNORE INTO Resources (url, crawlStatus, statusCode, dataSize, createdAt, updatedAt) VALUES(:url, :crawlStatus, :statusCode, :dataSize, :createdAt, :updatedAt)",
-                        null,
-                        {raw: true},
-                        insertVals
+                        {replacements: insertVals}
                     )
     //                db.Resource.findOrCreate({ url: url }, {
     //                    crawlStatus: 0,
     //                    statusCode: null,
-    //                    dataSize: null         
+    //                    dataSize: null
     //                })
                 );
             });
 
-            
-            chainer.run().success(function(){
+
+            chainer.run().then(function(){
                 chainer = new Sequelize.Utils.QueryChainer();
                 _.each(urls, function(url){
-                   chainer.add(db.Resource.find({where: { url: url } })); 
+                   chainer.add(db.Resource.find({where: { url: url } }));
                 });
-                chainer.run().success(function(results){
+                chainer.run().then(function(results){
                     t._ensureProcessing();
                     resolve(results);
                 });
             });
         });
     },
-    
+
     _getRecordsByStatus : function(status, limit){
         var q = {
             where: {
@@ -129,61 +128,61 @@ _.extend(Spider.prototype, {
         if(limit){
             q['limit'] = limit;
         }
-        
+
         return db.Resource.findAll(q);
     },
-    
+
     _getRecordByUrl: function(url){
         var q = {
             where : {
                 url: url
             }
         };
-        return db.Resource.find(q)        
+        return db.Resource.find(q)
     },
-    
+
     _updateRecords: function(rec){
         if(rec instanceof Array){
             var chainer = new Sequelize.Utils.QueryChainer();
             _.each(rec, function(v){
-               chainer.add(v.save()); 
+               chainer.add(v.save());
             });
             return chainer.run();
         }else{
             return rec.save();
         }
     },
-    
+
     _setReferences: function(val, refs){
         return val.setReferences(refs);
     },
-    
+
     //Strips off the # portion of the URL
     _getUrlToServer: function(url){
         var parts = urlUtils.parse(url);
         parts.hash = null;
         return urlUtils.format(parts);
     },
-    
+
     _isDomainIncluded: function(url){
         var t = this;
         var inDoms = t.options.includeDomains;
         var exDoms = t.options.excludeDomains;
         if(inDoms === null && exDoms === null){ return true; }
-        
+
         var parts = urlUtils.parse(url);
         if(exDoms !== null && _.contains(exDoms, parts.hostname)){ return false; }
         else if(inDoms !== null && _.contains(inDoms, parts.hostname)){ return true; }
         else{ return false; }
     },
-    
+
     _ensureProcessing: function(){
         var t = this;
         if(!t._processTimeout){
             t._processTimeout = setTimeout(t._processQueue, 250);
         }
     },
-    
+
     _processQueue: function(){
         var t = this;
         t._processTimeout = null;
@@ -191,7 +190,7 @@ _.extend(Spider.prototype, {
         t._isProcessing = true;
 
         var num = t.options.maxConnections -  t._crawler.getQueueDepth();
-        this._getRecordsByStatus(0, num + 1).success(function(res){
+        this._getRecordsByStatus(0, num + 1).then(function(res){
 
             if(res.length === 0){
                 t._isProcessing = false;
@@ -212,7 +211,7 @@ _.extend(Spider.prototype, {
                     return true;
                 });
 
-                t._updateRecords(updates).success(function(){
+                t._updateRecords(updates).then(function(){
                     _.each(res, function(val){
                         t._crawler.addUrl(val.url).then(t._crawlSuccess);
                     });
@@ -227,19 +226,19 @@ _.extend(Spider.prototype, {
         });
 
     },
-    
+
     _crawlSuccess: function(response){
         var t = this;
-        t._getRecordByUrl(response.url).success(function(val){
-            
+        t._getRecordByUrl(response.url).then(function(val){
+
             val.crawlStatus = 2;
             val.statusCode = response.statusCode;
             val.dataSize = response.body.length;
             val.contentType = response.headers['content-type'];
-            
-            t._updateRecords(val);            
+
+            t._updateRecords(val);
             t._ensureProcessing();
-            
+
             if(response.refs.length > 0){
                 var refs = _.map(response.refs, function(r){
                    return t._getUrlToServer(r);
@@ -253,15 +252,15 @@ _.extend(Spider.prototype, {
                 t.addUrls(refs).then(function(refObjs){
                     t._ensureProcessing();
                     t._setReferences(val, refObjs).error(function(err){
-                        
+
                     });
                 });
             }
 
         });
-        
 
-        
+
+
         t.trigger('crawl', response);
     }
 });

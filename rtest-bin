@@ -7,14 +7,15 @@ GLOBAL.appConfig = {
         "password": null,
         "settings": {
             "dialect": "sqlite",
-            "storage": "db.sqlite3",
+            "storage": ":memory:",//db.sqlite3",
             "logging": function(){}//console.log
         }
     }
 };
 
 var _ = require('underscore');
-    
+var path = require('path');
+
 var options = {
     includeDomains: null,
     excludeDomains: null,
@@ -107,19 +108,22 @@ var showHelp = function(){
 }
 var runTests = function(){
     var tests = [];
+    var cwd = process.cwd();
+
     _.each(testFiles, function(file){
+        file = path.resolve(cwd, file);
         console.log(file);
         tests = tests.concat(require(file));
     });
-    
+
     var c = new Spider(options);
     c.on('crawl', function(response){
        _.each(tests, function(tst){
-            tst.execute(response); 
+            tst.execute(response);
         });
     });
     _.each(urls, function(u){
-       c.addUrl(u); 
+       c.addUrl(u);
     });
 };
 

@@ -13,6 +13,7 @@ var Resource = sequelize.define('Resource', {
     classMethods : {
         associate: function(models){
             Resource.belongsToMany(Resource, { as: 'References', foreignKey: 'ParentResourceId', otherKey: 'ResourceId', through: "ResourceReference" });
+            Resource.belongsToMany(Resource, { as: 'Referrers', otherKey: 'ParentResourceId', foreignKey: 'ResourceId', through: "ResourceReference" });
         }
     }
   });

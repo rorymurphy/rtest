@@ -251,17 +251,22 @@ _.extend(Spider.prototype, {
 
                 t.addUrls(refs).then(function(refObjs){
                     t._ensureProcessing();
-                    t._setReferences(val, refObjs).error(function(err){
-
-                    });
+                    t._setReferences(val, refObjs);
                 });
             }
 
+            val.getReferrers().then(function(referrers){
+               response.referrers = [];
+                _.each(referrers, function(r){
+                    response.referrers.push(r.url);
+                });
+               t.trigger('crawl', response);              
+            });
         });
 
 
 
-        t.trigger('crawl', response);
+
     }
 });
 

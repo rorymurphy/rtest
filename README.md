@@ -56,6 +56,7 @@ The assert option provides methods for testing various conditions and outputting
 | url | the requested url |
 | body | the body of the HTTP request in string form - may be HTML or binary |
 | refs | other URLs that are referenced by this document - only parsed for HTML or CSS documents |
+| referrers | URLs that have been crawled and reference this document. Only contains pages that have already been crawled and parsed, so list is likely incomplete but can be very helpful in diagnosing where resources returning a 404 are being referenced. |
 | statusCode | the HTTP status code returned by the server |
 | headers | a javascript object with the header names as keys and values. The content-type is often a header of particular interest in order to write tests that only pertain to a particular resource class |
 | $ | the jQuery-like cheerio object for the document root that can be used to run queries against the page structure - only populated for HTML responses |

@@ -17,6 +17,13 @@ _.mixin({
             && haystack.substr(0, needle.length) === needle;
     }
 });
+
+var protocol_default_ports = {
+    'http': 80,
+    'https': 443,
+    'ftp': 21
+};
+
 var Crawler = function(options){
     var t = this;
     options = options || {};
@@ -104,11 +111,24 @@ _.extend(Crawler.prototype, {
         var url_parts = urlUtils.parse(url);
         
         //t.options.log("Crawling Url: " + url);
+
         var options = {  
            host: url_parts.host,   
-           port: ('port' in url_parts && url_parts.port !== null) ? url_parts.port : 80,   
+           port: ('port' in url_parts && url_parts.port !== null) ? url_parts.port : protocol_default_ports[url.protocol],   
            path: url_parts.path
         };
+        
+        if('httpProxy' in t.options){
+            var proxy_parts = urlUtils.parse(t.options.httpProxy);
+            options.path = url;
+            options.host = proxy_parts.host;
+            options.port = ('port' in proxy_parts && proxy_parts.port !== null) ? proxy_parts.port : 80;
+        }
+        
+        if('userAgent' in t.options){
+            options.headers = options.headers || {};
+            options.headers['User-Agent'] = t.options.userAgent;
+        }
         
         var req = http.get(options, function(req_url){
             t._openConnection();

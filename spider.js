@@ -25,6 +25,13 @@ var Spider = function(options){
     t.options = _.extend(t.options, options);
 
     t._pagesSpidered = 0;
+    
+    var cOpts = {
+        log: console.log
+    };
+    if('userAgent' in options){ cOpts.userAgent = options.userAgent; }
+    if('httpProxy' in options) { cOpts.httpProxy = options.httpProxy; }
+    
     t._crawler = new Crawler({log: console.log});
     _.bindAll(t,
         'addUrl',
@@ -115,6 +122,8 @@ _.extend(Spider.prototype, {
                     t._ensureProcessing();
                     resolve(results);
                 });
+            }, function(err){
+              throw err;
             });
         });
     },
@@ -219,11 +228,11 @@ _.extend(Spider.prototype, {
                     if(res.length >= num){
                         t._ensureProcessing();
                     }
-                });
-            }
+                }, function(err){throw err;});
+              }
 
 
-        });
+        }, function(err){throw err;} );
 
     },
 
@@ -260,9 +269,9 @@ _.extend(Spider.prototype, {
                 _.each(referrers, function(r){
                     response.referrers.push(r.url);
                 });
-               t.trigger('crawl', response);              
+               t.trigger('crawl', response);
             });
-        });
+        }, function(err){throw err;});
 
 
 

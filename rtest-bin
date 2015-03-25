@@ -87,6 +87,16 @@ var parseArgs = function(){
                 urls.push(process.argv[i + 1]);
                 i++;
                 break;
+            case '--httpProxy':
+            case '-px':
+                options.httpProxy = process.argv[i + 1];
+                i++;
+                break;
+            case '--userAgent':
+            case '-ua':
+                options.userAgent = process.argv[i + 1];
+                i++;
+                break;
             default:
                 testFiles.push(process.argv[i]);
                 break;
@@ -112,7 +122,6 @@ var runTests = function(){
 
     _.each(testFiles, function(file){
         file = path.resolve(cwd, file);
-        console.log(file);
         tests = tests.concat(require(file));
     });
 

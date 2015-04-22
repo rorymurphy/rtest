@@ -25,13 +25,13 @@ var Spider = function(options){
     t.options = _.extend(t.options, options);
 
     t._pagesSpidered = 0;
-    
+
     var cOpts = {
         log: console.log
     };
     if('userAgent' in options){ cOpts.userAgent = options.userAgent; }
     if('httpProxy' in options) { cOpts.httpProxy = options.httpProxy; }
-    
+
     t._crawler = new Crawler({log: console.log});
     _.bindAll(t,
         'addUrl',

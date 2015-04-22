@@ -71,7 +71,7 @@ var parseArgs = function(){
                 options.crawlCss = false;
                 break;
             case '--noScripts':
-                options.crawlCss = false;
+                options.crawlScripts = false;
                 break;
             case '--fetchTimeout':
                 options.fetchTimeout = parseInt(process.argv[i + 1]);
@@ -128,7 +128,13 @@ var runTests = function(){
     var c = new Spider(options);
     c.on('crawl', function(response){
        _.each(tests, function(tst){
+          try{
             tst.execute(response);
+          }catch(exc){
+            console.error("Exception thrown by test:");
+            console.error(exc.message);
+            console.error(exc.stack);
+          }
         });
     });
     _.each(urls, function(u){

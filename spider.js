@@ -7,6 +7,8 @@ var q = require('querystring'),
         db = require('./models'),
         Crawler = require('./crawler');
 
+var DB_CHUNK_SIZE = 50;
+
 _.mixin({
     beginsWith: function(haystack, needle){
         return typeof haystack === 'string'
@@ -66,6 +68,42 @@ _.extend(Spider.prototype, {
     },
 
     addUrls: function(urls){
+      var t = this;
+      var promise = null;
+
+      var chunker = function(chunk, chain){
+        var result = null;
+        if(chain){
+          result = new Promise(function(resolve, reject){
+            chain.then(function(vals){
+              t._addUrlsInternal(chunk).then(function(vals2){
+                vals2 = vals.concat(vals2);
+                resolve(vals2);
+              }, function(err){
+                reject(err);
+              });
+            }, function(err2){
+              reject(err2);
+            });
+          });
+        } else{
+          result = t._addUrlsInternal(chunk);
+        }
+        return result;
+      }
+
+      urls = _.unique(urls);
+      while(urls.length > 0){
+        var size = (DB_CHUNK_SIZE <  urls.length) ? DB_CHUNK_SIZE : urls.length;
+        var slice = urls.slice(0, size);
+        urls = urls.slice(size);
+        promise = chunker(slice, promise);
+      }
+
+      return promise;
+    },
+
+    _addUrlsInternal: function(urls){
         var t = this;
         urls = _.unique(urls);
         return new Promise(function(resolve, reject){
@@ -261,6 +299,8 @@ _.extend(Spider.prototype, {
                 t.addUrls(refs).then(function(refObjs){
                     t._ensureProcessing();
                     t._setReferences(val, refObjs);
+                }, function(err){
+                  throw err;
                 });
             }
 

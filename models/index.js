@@ -8,7 +8,7 @@ var config = GLOBAL.appConfig;
 var dbConfig = config.database;
 var sequelize = new Sequelize(dbConfig.host, dbConfig.username, dbConfig.password, dbConfig.settings);
 var db = {};
- 
+
 fs
   .readdirSync(__dirname)
   .filter(function(file) {
@@ -18,16 +18,15 @@ fs
     var model = sequelize.import(path.join(__dirname, file));
     db[model.name] = model;
   });
- 
+
 Object.keys(db).forEach(function(modelName) {
   if ('associate' in db[modelName]) {
     db[modelName].associate(db);
   }
 });
- 
- sequelize.sync().then(function(){}, console.log);
+
+ sequelize.sync().then(function(){}, console.error);
 module.exports = lodash.extend({
   sequelize: sequelize,
   Sequelize: Sequelize
 }, db);
-

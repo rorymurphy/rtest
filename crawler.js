@@ -1,12 +1,11 @@
 var http = require('http'),
-        cheerio = require('cheerio'),
-        //jsdom = require('jsdom'),
-	q = require('querystring'),
-        urlUtils = require('url'),
-        fs = require('fs'),
-        _ = require('underscore'),
-        Backbone = require('backbone'),
-        Promise = require('promise');
+  cheerio = require('cheerio'),
+  q = require('querystring'),
+  urlUtils = require('url'),
+  fs = require('fs'),
+  _ = require('underscore'),
+  Backbone = require('backbone'),
+  Promise = require('promise');
 
 
 _.mixin({
@@ -38,7 +37,6 @@ var Crawler = function(options){
         'getQueueDepth',
         '_openConnection',
         '_closeConnection',
-        'getQueueDepth',
         '_processUrl',
         '_processHtmlResponse',
         '_processCssResponse',
@@ -53,6 +51,7 @@ _.extend(Crawler.prototype, {
         crawlScripts: true,
         fetchTimeout: null,
         maxConnections: 50,
+        maxDataSize: 10485760, //Default to a 10MB maximum size for request data
         log: function(){}
     },
 
@@ -113,9 +112,11 @@ _.extend(Crawler.prototype, {
         //t.options.log("Crawling Url: " + url);
 
         var options = {
+           method: 'GET',
            host: url_parts.host,
            port: ('port' in url_parts && url_parts.port !== null) ? url_parts.port : protocol_default_ports[url.protocol],
-           path: url_parts.path
+           path: url_parts.path,
+           keepAlive: true
         };
 
         if('httpProxy' in t.options){
@@ -130,81 +131,111 @@ _.extend(Crawler.prototype, {
             options.headers['User-Agent'] = t.options.userAgent;
         }
 
-        var req = http.get(options, function(req_url){
-            //The outer function creates a scope for preserving the request URL
-            //The function is executed, passing in the URL, and a function is returned that processes the response
-            t._openConnection();
-            return function(res) {
-                var response = {
-                    url: req_url,
-                    statusCode: 0,
-                    body: '',
-                    refs: []
-                };
+        var done = function(req_url, res, response) {
+            t._closeConnection();
 
-                var done = function() {
-                    t._closeConnection();
+            response.statusCode = res.statusCode;
+            response.headers = res.headers;
 
-                    response.statusCode = res.statusCode;
-                    response.headers = res.headers;
+            var result = null;
+            if(res.statusCode==200
+                && 'content-type' in res.headers
+                && _.beginsWith(res.headers['content-type'], 'text/html')){
 
-                    var result = null;
-                    if(res.statusCode==200
-                        && 'content-type' in res.headers
-                        && _.beginsWith(res.headers['content-type'], 'text/html')){
+                result = t._processHtmlResponse(response);
 
-                        result = t._processHtmlResponse(response);
+            }else if(res.statusCode==200
+                && 'content-type' in res.headers
+                && _.beginsWith(res.headers['content-type'], 'text/css')){
 
-                    }else if(res.statusCode==200
-                        && 'content-type' in res.headers
-                        && _.beginsWith(res.headers['content-type'], 'text/css')){
-
-                        result = t._processCssResponse(response);
+                result = t._processCssResponse(response);
+            }else{
+                if(res.statusCode==301 || res.statusCode==302){
+                    var location = res.headers['location'];
+                    if(!location || ! response.url){
+                        t.options.log("Bad redirect from " + response.url);
+                        t.options.log(JSON.stringify(res.headers));
                     }else{
-                        if(res.statusCode==301 || res.statusCode==302){
-                            var location = res.headers['location'];
-                            if(!location || ! response.url){
-                                t.options.log("Bad redirect from " + response.url);
-                                t.options.log(JSON.stringify(res.headers));
-                            }else{
-                                response.refs.push(urlUtils.resolve(response.url, location ) );
-                            }
-                        }
-
-                        result = new Promise(function(resolve, reject){ resolve(response); });
+                        response.refs.push(urlUtils.resolve(response.url, location ) );
                     }
+                }
 
-                    result.then(function(resp){
-                        if(resp == undefined || resp == null){
-                          throw new Error('This should not occur, but no response recieved for URL ' + req_url);
-                        }
-                        item.resolve(resp);
-                      },
-                      function(err){
-                        console.error(err);
-                        throw err;
-                    });
-                };
+                result = new Promise(function(resolve, reject){ resolve(response); });
+            }
 
-                res.on('data', function(chunk) {
-                    response.body = response.body + chunk.toString();
-                });
-                res.on('end', done);
-                res.on('close', done);
+            result.then(function(resp){
+                if(resp == undefined || resp == null){
+                  console.error('This should not occur, but no response recieved for URL ' + req_url);
+                  throw new Error('This should not occur, but no response recieved for URL ' + req_url);
+                }
+                item.resolve(resp);
+              },
+              function(err){
+                console.error(err);
+                throw err;
+            });
+        };
+
+        var responseHandler = function(req_url, res) {
+
+
+          var response = {
+              url: req_url,
+              statusCode: 0,
+              body: '',
+              refs: []
+          };
+
+          var dataHandler = function(chunk) {
+              if(response.body + chunk.length > t.options.maxDataSize){
+                res.on('data', function(){});
+                res.off('data', dataHandler);
+
+              }else{
+                response.body = response.body + chunk.toString();
+              }
+          };
+
+          res.on('data', dataHandler);
+          res.on('end', _.partial(done, req_url, res, response));
+          res.on('close', _.partial(done, req_url, res, response));
+        };
+
+        var errorHandler = function(req_url, e) {
+            t._closeConnection();
+            var response = {
+                url: req_url,
+                body: '',
+                refs: [],
+                statusCode: e.statusCode || 0,
+                headers: e.headers || {}
             };
-        }(url)).on('error', function(req_url){
-            return function(e) {
-                var response = {
-                    url: req_url,
-                    body: '',
-                    refs: [],
-                    statusCode: e.statusCode || 0,
-                    headers: e.headers || {}
-                };
 
-                item.resolve(response);
-            };
-        }(url));
+            item.resolve(response);
+        };
+
+        var timeoutHandler = function(req_url){
+          t._closeConnection();
+          req.abort();
+           console.error("Timeout for " + req_url);
+           var response = {
+               url: req_url,
+               body: '',
+               refs: [],
+               statusCode: 504,
+               headers: {}
+           };
+           item.resolve(response);
+        };
+
+        var req = http.request(options, _.partial(responseHandler, url));
+        if(t.options.fetchTimeout !== null){
+          req.setTimeout(t.options.fetchTimeout, _.partial(timeoutHandler, url));
+        }
+        req.end();
+        t._openConnection();
+
+        req.on('error', _.partial(errorHandler, url));
     },
 
     _processResponse: function(response){

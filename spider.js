@@ -7,7 +7,7 @@ var q = require('querystring'),
         db = require('./models'),
         Crawler = require('./crawler');
 
-var DB_CHUNK_SIZE = 50;
+var DB_CHUNK_SIZE = 150;
 
 _.mixin({
     beginsWith: function(haystack, needle){
@@ -29,12 +29,13 @@ var Spider = function(options){
     t._pagesSpidered = 0;
 
     var cOpts = {
-        log: console.log
+        log: GLOBAL.appConfig.stdout,
+        fetchTimeout: t.options.fetchTimeout
     };
     if('userAgent' in options){ cOpts.userAgent = options.userAgent; }
     if('httpProxy' in options) { cOpts.httpProxy = options.httpProxy; }
 
-    t._crawler = new Crawler({log: console.log});
+    t._crawler = new Crawler(cOpts);
     _.bindAll(t,
         'addUrl',
         '_getUrlToServer',

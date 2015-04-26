@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+debugger;
 GLOBAL.appConfig = {
     database: {
         "host": null,
@@ -10,9 +10,12 @@ GLOBAL.appConfig = {
             "storage": ":memory:",//db.sqlite3",
             "logging": function(){}//console.log
         }
-    }
+    },
+    stdout: console.log,
+    logLevel: "SUCCESS"
 };
 
+var fs = require('fs');
 var _ = require('underscore');
 var path = require('path');
 
@@ -27,7 +30,7 @@ var options = {
     crawlImages: true,
     crawlCss: true,
     crawlScripts: true,
-    fetchTimeout: null,
+    fetchTimeout: 30000,
     maxConnections: 50
 };
 
@@ -92,6 +95,18 @@ var parseArgs = function(){
                 options.httpProxy = process.argv[i + 1];
                 i++;
                 break;
+            case '--outputFile':
+            case '-o':
+                var file = process.argv[i + 1];
+                i++;
+
+                fs.writeFileSync(file, '');
+                GLOBAL.appConfig.stdout = function(text){
+                  fs.appendFile(file, text, function (err) {
+                    if (err){console.error(err); throw err;}
+                  });
+                };
+              break;
             case '--userAgent':
             case '-ua':
                 options.userAgent = process.argv[i + 1];

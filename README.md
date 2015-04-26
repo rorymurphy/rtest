@@ -17,6 +17,7 @@ rtest &lt;options&gt; &lt;test file 1&gt; ... &lt;test file n&gt;
 | --maxPages | The maximum number of pages that should be crawled. |
 | --maxConnections | The maximum number of simultaneous connections that can be open at any given time. It is important not to set this too high unless you have a web farm capable of handling it. The crawler is capable of opening thousands of simultaneous connections due to node's asynchronous IO, which is more than many traditional web servers can handle |
 | --fetchTimeout | The amount of time to wait to retrieve a page before giving up, specified in milliseconds |
+| --outputFile -o | A file to write the test output to |
 | --noCss | Forces the crawler to ignore CSS references |
 | --noImages | Forces the crawler to ignore image references |
 | --noScripts | Forces the crawler to ignore scripts |
@@ -34,7 +35,7 @@ rtest &lt;options&gt; &lt;test file 1&gt; ... &lt;test file n&gt;
 
         rtest.test("Optimize with 1 CSS file", function(assert, response){
             //Assert that there is only one link element of type text/css
-            assert.areEqual(1, response.$('link[type="text/css"]').length, "More than one stylesheet found", "WARN"); 
+            assert.areEqual(1, response.$('link[type="text/css"]').length, "More than one stylesheet found", "WARN");
         })
     ];
 
